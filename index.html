@@ -131,6 +131,87 @@
         100% { opacity: 1; transform: scale(1); filter: brightness(1); }
       }
       #restart { margin-top: 22px; font-size: 13px; letter-spacing: 1px; opacity: 0.55; }
+
+      /* ---- How-to-play button ---- */
+      #help-btn {
+        bottom: max(14px, env(safe-area-inset-bottom));
+        left: 14px;
+        width: 40px;
+        height: 40px;
+        display: grid;
+        place-items: center;
+        font-size: 19px;
+        font-weight: 700;
+        color: var(--cyan);
+        background: rgba(174, 249, 255, 0.06);
+        border: 1px solid rgba(174, 249, 255, 0.22);
+        border-radius: 50%;
+        cursor: pointer;
+        pointer-events: auto;
+        opacity: 0.65;
+        box-shadow: 0 0 14px rgba(174, 249, 255, 0.18);
+        transition: opacity 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+      }
+      #help-btn:hover {
+        opacity: 1;
+        transform: translateY(-1px);
+        box-shadow: 0 0 22px rgba(174, 249, 255, 0.4);
+      }
+
+      /* ---- How-to-play panel ---- */
+      #help {
+        position: fixed;
+        inset: 0;
+        z-index: 20;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        background: rgba(5, 5, 16, 0.72);
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+      }
+      #help.show { opacity: 1; pointer-events: auto; }
+      #help .card {
+        width: min(360px, 100%);
+        background: rgba(13, 14, 34, 0.96);
+        border: 1px solid rgba(174, 249, 255, 0.2);
+        border-radius: 18px;
+        padding: 26px 24px 22px;
+        box-shadow: 0 0 40px rgba(174, 249, 255, 0.12);
+        transform: scale(0.96);
+        transition: transform 0.3s ease;
+      }
+      #help.show .card { transform: scale(1); }
+      #help h2 {
+        font-size: 15px;
+        letter-spacing: 6px;
+        color: var(--cyan);
+        text-shadow: 0 0 16px rgba(174, 249, 255, 0.4);
+        margin-bottom: 16px;
+      }
+      #help ul { list-style: none; display: flex; flex-direction: column; gap: 13px; }
+      #help li { display: flex; gap: 12px; font-size: 13.5px; line-height: 1.45; opacity: 0.92; }
+      #help li .ic {
+        flex: 0 0 22px;
+        font-size: 16px;
+        text-align: center;
+        color: var(--cyan);
+        filter: drop-shadow(0 0 6px rgba(174, 249, 255, 0.5));
+      }
+      #help .close {
+        margin-top: 20px;
+        text-align: center;
+        font-size: 12px;
+        letter-spacing: 3px;
+        color: var(--cyan);
+        opacity: 0.7;
+        cursor: pointer;
+      }
+      #help .close:hover { opacity: 1; }
     </style>
   </head>
   <body>
@@ -139,7 +220,21 @@
     <div id="title" class="hud">ECHO</div>
     <div id="score" class="hud">0</div>
     <div id="mute" class="hud" title="Mute (M)">♪</div>
+    <div id="help-btn" class="hud" title="How to play (H)">?</div>
     <div id="hint" class="hud">swipe or use arrow keys / WASD to move</div>
+
+    <div id="help">
+      <div class="card">
+        <h2>HOW TO PLAY</h2>
+        <ul>
+          <li><span class="ic">⬍</span><span><b>Move</b> one cell at a time — swipe on mobile, or arrow keys / WASD on desktop.</span></li>
+          <li><span class="ic">◈</span><span><b>Echoes</b> are ghosts of your past moves. They appear over time and retrace the exact path you walked.</span></li>
+          <li><span class="ic">✕</span><span><b>Avoid them.</b> Step onto any echo and it's game over. The board tightens as more spawn.</span></li>
+          <li><span class="ic">★</span><span><b>Score</b> +1 for every move you survive. Outlast yourself and beat your best.</span></li>
+        </ul>
+        <div class="close">TAP TO CLOSE</div>
+      </div>
+    </div>
 
     <div id="over">
       <div class="label">GAME OVER</div>

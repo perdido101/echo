@@ -82,6 +82,8 @@ const overEl = document.getElementById('over')!;
 const finalEl = document.getElementById('final')!;
 const bestFinalEl = document.getElementById('bestFinal')!;
 const newbestEl = document.getElementById('newbest')!;
+const helpBtnEl = document.getElementById('help-btn')!;
+const helpEl = document.getElementById('help')!;
 
 const sound = new SoundEngine();
 const BEST_KEY = 'echo-best';
@@ -399,7 +401,15 @@ function frame(now: number): void {
 /* ============================================================================
  * Input — arrow keys + WASD on desktop, swipe on touch.
  * ==========================================================================*/
+let helpOpen = false;
+
+function setHelp(open: boolean): void {
+  helpOpen = open;
+  helpEl.classList.toggle('show', open);
+}
+
 function handleDir(dir: Dir): void {
+  if (helpOpen) return; // ignore moves while the how-to-play panel is open
   sound.resume(); // first gesture unlocks audio
   tryMove(dir);
 }
@@ -438,11 +448,20 @@ window.addEventListener('keydown', (ev) => {
     case ' ':
     case 'Enter':
       ev.preventDefault();
-      if (gameOver) restart();
+      if (helpOpen) setHelp(false);
+      else if (gameOver) restart();
       break;
     case 'm':
     case 'M':
       updateMuteUI(sound.toggleMute());
+      break;
+    case 'h':
+    case 'H':
+    case '?':
+      setHelp(!helpOpen);
+      break;
+    case 'Escape':
+      if (helpOpen) setHelp(false);
       break;
   }
 });
@@ -495,6 +514,10 @@ muteEl.addEventListener('click', () => {
   sound.resume();
   updateMuteUI(sound.toggleMute());
 });
+
+// How-to-play panel: button opens it, tapping the panel closes it.
+helpBtnEl.addEventListener('click', () => setHelp(true));
+helpEl.addEventListener('click', () => setHelp(false));
 
 window.addEventListener('resize', resize);
 
