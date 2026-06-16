@@ -24,7 +24,7 @@ export const CONFIG = {
   ECHO_SPAWN_INTERVAL: 12, // starting gap (in moves) between additional echo spawns
   ECHO_SPAWN_FLOOR: 5, // the interval never shrinks below this many moves
   ECHO_INTERVAL_STEP: 1, // interval shrinks by this each time an echo spawns (difficulty ramp)
-  ECHO_LIFESPAN: 60, // moves an echo lives before fading out & despawning (0 = lives forever).
+  ECHO_LIFESPAN: 40, // moves an echo lives before fading out & despawning (0 = lives forever).
   //                    A finite lifespan caps how many echoes share the board at once
   //                    (steady state ≈ ECHO_LIFESPAN / spawn interval), which is what makes an
   //                    endless run possible. Set to 0 for the original "board fills up" mode.
@@ -200,9 +200,29 @@ function tryMove(dir: Dir): void {
     echoes = echoes.filter((e) => tick - e.delay < CONFIG.ECHO_LIFESPAN);
   }
 
-  // (5) Overlap check — stepping onto ANY echo is instant death.
+  // (5) Overlap check — you die if you LAND on an echo, OR if you and an echo
+  //     swap cells (cross straight through each other) this tick. The swap case
+  //     is what makes echoes that trail you by an odd number of moves a real
+  //     threat too — without it, grid "checkerboard parity" means they could
+  //     never share your cell and were effectively harmless.
+  const playerNew = player.cell; // cell the player just moved to
+  const playerPrev = positionHistory[tick - 1]; // cell the player came from
   for (const e of echoes) {
-    if (e.cell.x === player.cell.x && e.cell.y === player.cell.y) {
+    const en = e.cell; // echo's new cell this tick
+    // Direct overlap: stepped onto an echo.
+    if (en.x === playerNew.x && en.y === playerNew.y) {
+      die();
+      return;
+    }
+    // Pass-through: player moved A->B while this echo moved B->A.
+    const ep = positionHistory[tick - 1 - e.delay]; // echo's previous cell
+    if (
+      ep &&
+      ep.x === playerNew.x &&
+      ep.y === playerNew.y &&
+      en.x === playerPrev.x &&
+      en.y === playerPrev.y
+    ) {
       die();
       return;
     }

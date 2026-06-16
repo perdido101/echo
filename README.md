@@ -39,8 +39,10 @@ Each "tick" resolves in a fixed, documented order:
 1. Resolve the **player** move first (wall moves are ignored).
 2. **Advance** every echo by replaying your historical move.
 3. **Spawn** a new echo if one is due.
-4. **Check overlap** — if you now share a cell with any echo, you die.
-5. If you survived, award +1 point.
+4. **Despawn** any echo that has outlived `ECHO_LIFESPAN`.
+5. **Check collision** — you die if you land on an echo, *or* if you and an
+   echo swap cells (cross straight through each other) this tick.
+6. If you survived, award +1 point.
 
 ---
 
@@ -71,7 +73,7 @@ All gameplay constants live in one exported `CONFIG` object at the top of
 | `ECHO_SPAWN_INTERVAL`  | `12`    | Starting gap (in moves) between additional echo spawns.                  |
 | `ECHO_SPAWN_FLOOR`     | `5`     | The spawn interval never shrinks below this.                            |
 | `ECHO_INTERVAL_STEP`   | `1`     | How much the interval shrinks per spawn (difficulty ramp).              |
-| `ECHO_LIFESPAN`        | `60`    | Moves an echo lives before fading out & despawning. Caps how many echoes share the board (steady state ≈ `ECHO_LIFESPAN` ÷ spawn interval), which is what makes an **endless run possible**. Set `0` for the original "board fills up" mode. |
+| `ECHO_LIFESPAN`        | `40`    | Moves an echo lives before fading out & despawning. Caps how many echoes share the board (steady state ≈ `ECHO_LIFESPAN` ÷ spawn interval), which is what makes an **endless run possible** — lower it for an easier board. Set `0` for the original "board fills up" mode. |
 | `ECHO_FADEOUT`         | `12`    | Over how many of its final moves an echo fades to nothing before despawning. |
 | `TWEEN_MS`             | `120`   | Tile move animation duration (ms), eased-out — never instant snapping.   |
 | `ECHO_MAX_OPACITY`     | `0.6`   | Opacity of the newest (brightest) echo.                                 |
