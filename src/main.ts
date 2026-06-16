@@ -24,6 +24,11 @@ export const CONFIG = {
   ECHO_SPAWN_INTERVAL: 12, // starting gap (in moves) between additional echo spawns
   ECHO_SPAWN_FLOOR: 5, // the interval never shrinks below this many moves
   ECHO_INTERVAL_STEP: 1, // interval shrinks by this each time an echo spawns (difficulty ramp)
+  ECHO_LIFESPAN: 60, // moves an echo lives before fading out & despawning (0 = lives forever).
+  //                    A finite lifespan caps how many echoes share the board at once
+  //                    (steady state ≈ ECHO_LIFESPAN / spawn interval), which is what makes an
+  //                    endless run possible. Set to 0 for the original "board fills up" mode.
+  ECHO_FADEOUT: 12, // over how many of its final moves an echo fades to nothing before despawning
 
   // --- Feel / animation ---
   TWEEN_MS: 120, // tile move animation duration (ms), eased-out — never instant snapping
@@ -188,7 +193,14 @@ function tryMove(dir: Dir): void {
     sound.echoSpawn();
   }
 
-  // (4) Overlap check — stepping onto ANY echo is instant death.
+  // (4) Despawn echoes that have outlived ECHO_LIFESPAN. This caps how many
+  //     echoes can crowd the board at once, so a skilled run can go forever.
+  //     (an echo's age == tick - delay, since its delay equals its spawn tick.)
+  if (CONFIG.ECHO_LIFESPAN > 0) {
+    echoes = echoes.filter((e) => tick - e.delay < CONFIG.ECHO_LIFESPAN);
+  }
+
+  // (5) Overlap check — stepping onto ANY echo is instant death.
   for (const e of echoes) {
     if (e.cell.x === player.cell.x && e.cell.y === player.cell.y) {
       die();
@@ -196,7 +208,7 @@ function tryMove(dir: Dir): void {
     }
   }
 
-  // (5) Survived: score and blip.
+  // (6) Survived: score and blip.
   score++;
   scoreEl.textContent = String(score);
   sound.blip();
@@ -383,6 +395,11 @@ function frame(now: number): void {
     const rank = n - 1 - i; // 0 = newest
     let alpha = CONFIG.ECHO_MAX_OPACITY * Math.pow(CONFIG.ECHO_FADE, rank);
     alpha = Math.max(CONFIG.ECHO_MIN_OPACITY, alpha);
+    // Fade out over the final ECHO_FADEOUT moves of the echo's lifespan.
+    if (CONFIG.ECHO_LIFESPAN > 0) {
+      const remaining = CONFIG.ECHO_LIFESPAN - (tick - e.delay);
+      alpha *= Math.max(0, Math.min(1, remaining / CONFIG.ECHO_FADEOUT));
+    }
     const desat = Math.min(1, rank * 0.16); // older -> more slate-grey
     const c = renderCoords(e, now);
     drawTrail(e, now, alpha * (gameOver ? 1 - deathFade * 0.7 : 1), desat);

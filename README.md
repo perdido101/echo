@@ -71,6 +71,8 @@ All gameplay constants live in one exported `CONFIG` object at the top of
 | `ECHO_SPAWN_INTERVAL`  | `12`    | Starting gap (in moves) between additional echo spawns.                  |
 | `ECHO_SPAWN_FLOOR`     | `5`     | The spawn interval never shrinks below this.                            |
 | `ECHO_INTERVAL_STEP`   | `1`     | How much the interval shrinks per spawn (difficulty ramp).              |
+| `ECHO_LIFESPAN`        | `60`    | Moves an echo lives before fading out & despawning. Caps how many echoes share the board (steady state ≈ `ECHO_LIFESPAN` ÷ spawn interval), which is what makes an **endless run possible**. Set `0` for the original "board fills up" mode. |
+| `ECHO_FADEOUT`         | `12`    | Over how many of its final moves an echo fades to nothing before despawning. |
 | `TWEEN_MS`             | `120`   | Tile move animation duration (ms), eased-out — never instant snapping.   |
 | `ECHO_MAX_OPACITY`     | `0.6`   | Opacity of the newest (brightest) echo.                                 |
 | `ECHO_FADE`            | `0.74`  | Each older echo multiplies opacity by this (the fading trail).          |
