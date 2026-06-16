@@ -128,6 +128,28 @@ export class SoundEngine {
     });
   }
 
+  /** Bright, rewarding little arpeggio when a goal is collected. */
+  collect(): void {
+    if (!this.ctx || !this.master) return;
+    const ctx = this.ctx;
+    const t = ctx.currentTime;
+    const notes = [659.25, 783.99, 1046.5]; // E5 - G5 - C6, a happy upward chime
+    notes.forEach((f, i) => {
+      const st = t + i * 0.06;
+      const o = ctx.createOscillator();
+      o.type = 'triangle';
+      const g = ctx.createGain();
+      o.frequency.setValueAtTime(f, st);
+      g.gain.setValueAtTime(0.0001, st);
+      g.gain.exponentialRampToValueAtTime(0.2, st + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, st + 0.16);
+      o.connect(g);
+      g.connect(this.master!);
+      o.start(st);
+      o.stop(st + 0.18);
+    });
+  }
+
   /** Low impact thud + brief dissonant pair, then silence. */
   death(): void {
     if (!this.ctx || !this.master) return;

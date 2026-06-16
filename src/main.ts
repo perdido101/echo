@@ -42,6 +42,8 @@ export const CONFIG = {
   BG: '#0a0a1a', // near-black indigo background
   PLAYER_CORE: '#aef9ff', // bright cyan-white player core
   CELL_BORDER: 'rgba(255,255,255,0.06)', // very faint cell borders
+  GOAL_CORE: '#ffd479', // warm gold goal tile — distinct from cyan player/echoes
+  GOAL_POINTS: 1, // points awarded per goal collected
 
   // --- Misc visuals ---
   CELL_ROUND: 0.22, // corner radius as a fraction of cell size
@@ -91,7 +93,7 @@ const helpBtnEl = document.getElementById('help-btn')!;
 const helpEl = document.getElementById('help')!;
 
 const sound = new SoundEngine();
-const BEST_KEY = 'echo-best';
+const BEST_KEY = 'echo-best-v2'; // bumped: score now comes from collecting goals
 
 /* ============================================================================
  * Game state
@@ -109,6 +111,7 @@ let best: number = Number(localStorage.getItem(BEST_KEY) || 0);
 let gameOver: boolean;
 let hintActive: boolean;
 let deathFade: number; // 0..1 board dim/desaturate progress on death
+let goal: Cell; // the collectible goal tile — reaching it scores points
 
 function startGame(): void {
   player = makeTile(center, center);
@@ -125,6 +128,21 @@ function startGame(): void {
   overEl.classList.remove('show');
   newbestEl.classList.remove('flash');
   scoreEl.textContent = '0';
+  spawnGoal();
+}
+
+/** Place the goal on a random empty cell (avoiding the player and echoes). */
+function spawnGoal(): void {
+  const size = CONFIG.GRID_SIZE;
+  for (let attempt = 0; attempt < 60; attempt++) {
+    const c: Cell = { x: (Math.random() * size) | 0, y: (Math.random() * size) | 0 };
+    if (c.x === player.cell.x && c.y === player.cell.y) continue;
+    if (echoes.some((e) => e.cell.x === c.x && e.cell.y === c.y)) continue;
+    goal = c;
+    return;
+  }
+  // Fallback (board nearly full): any cell that isn't the player's.
+  goal = { x: (player.cell.x + 1) % size, y: player.cell.y };
 }
 
 function makeTile(x: number, y: number): Tile {
@@ -140,7 +158,8 @@ function makeTile(x: number, y: number): Tile {
  *      index (tick - echo.delay).
  *   3. SPAWN a new echo if one is due (it appears at the start cell).
  *   4. CHECK OVERLAP: if the player now shares a cell with ANY echo -> death.
- *   5. If the player survived, award +1 point.
+ *   5. If the player survived AND landed on the goal, collect it (+points) and
+ *      respawn a new goal. Surviving alone scores nothing.
  * ==========================================================================*/
 function tryMove(dir: Dir): void {
   if (gameOver) return;
@@ -228,10 +247,16 @@ function tryMove(dir: Dir): void {
     }
   }
 
-  // (6) Survived: score and blip.
-  score++;
-  scoreEl.textContent = String(score);
-  sound.blip();
+  // (6) Survived. Score only comes from collecting goals (not from surviving),
+  //     so camping a safe loop earns nothing — you must chase the goal.
+  if (player.cell.x === goal.x && player.cell.y === goal.y) {
+    score += CONFIG.GOAL_POINTS;
+    scoreEl.textContent = String(score);
+    sound.collect();
+    spawnGoal();
+  } else {
+    sound.blip();
+  }
 }
 
 /** Re-aim a tile's tween from its CURRENT rendered position (smooth on rapid input). */
@@ -397,6 +422,40 @@ function lerpColor(a: number[], b: number[], t: number): number[] {
   ];
 }
 
+/**
+ * Draw the goal as a pulsing gold ring + bright core. Distinct from the player
+ * and echoes by SHAPE (ring) and ANIMATION as well as colour, so it reads
+ * clearly even for colourblind players.
+ */
+function drawGoal(now: number, fade: number): void {
+  const { px, py } = cellCenterPx(goal.x, goal.y);
+  const base = cellPx * (1 - CONFIG.TILE_INSET * 2) * 0.5;
+  const pulse = 0.5 + 0.5 * Math.sin(now / 320); // 0..1 gentle pulse
+
+  ctx.save();
+  ctx.shadowColor = 'rgba(255,212,121,0.9)';
+  ctx.shadowBlur = cellPx * 0.5;
+
+  // Pulsing ring.
+  ctx.strokeStyle = CONFIG.GOAL_CORE;
+  ctx.lineWidth = Math.max(2, cellPx * 0.07);
+  ctx.globalAlpha = fade * (0.5 + pulse * 0.5);
+  ctx.beginPath();
+  ctx.arc(px, py, base * (0.62 + pulse * 0.26), 0, Math.PI * 2);
+  ctx.stroke();
+
+  // Bright core.
+  ctx.globalAlpha = fade;
+  const grad = ctx.createRadialGradient(px, py, 1, px, py, base * 0.5);
+  grad.addColorStop(0, '#fff4d6');
+  grad.addColorStop(1, 'rgba(255,212,121,0.12)');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.arc(px, py, base * 0.34, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
 function frame(now: number): void {
   // Background.
   ctx.fillStyle = CONFIG.BG;
@@ -425,6 +484,9 @@ function frame(now: number): void {
     drawTrail(e, now, alpha * (gameOver ? 1 - deathFade * 0.7 : 1), desat);
     drawTile(c.x, c.y, alpha * (gameOver ? 1 - deathFade * 0.7 : 1), 0.5 - desat * 0.3, desat);
   }
+
+  // Goal tile (drawn above echoes so it stays readable as the objective).
+  drawGoal(now, gameOver ? 1 - deathFade * 0.6 : 1);
 
   // Player on top with the strongest bloom.
   const pc = renderCoords(player, now);
